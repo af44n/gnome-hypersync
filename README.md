@@ -100,3 +100,7 @@ the tests never touch your real settings. they run in their own dbus session wit
 ## status
 
 completed. everything on the list syncs: extensions and their settings, keybindings, look and feel, wallpaper and themes. all of it is tested with two devices in the sandbox, settings and extensions also went through a real run over the real dht
+
+## license
+
+mit
