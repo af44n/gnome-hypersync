@@ -17,7 +17,7 @@ then checks that the real dconf database did not change
 function run_in_sandbox (command) {
   const real_config = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config')
   const real_data = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
-  const before = read_fingerprint(real_config) + read_extensions_fingerprint(real_data)
+  const before = read_fingerprint(real_config) + read_files_fingerprint(real_data)
   const sandbox = make_sandbox()
   fs.mkdirSync(path.join(sandbox.dir, 'tmp'))
   const env = { ...sandbox.env, TMPDIR: path.join(sandbox.dir, 'tmp') } // temp folders of the tests are deleted with the sandbox
@@ -26,31 +26,32 @@ function run_in_sandbox (command) {
 }
 
 function on_sandbox_exit ({ code, real_config, real_data, before, sandbox }) {
-  const after = read_fingerprint(real_config) + read_extensions_fingerprint(real_data)
+  const after = read_fingerprint(real_config) + read_files_fingerprint(real_data)
   fs.rmSync(sandbox.dir, { recursive: true, force: true })
   if (fs.readFileSync('/proc/self/mounts', 'utf8').includes('gnome-hypersync-sandbox-')) {
     console.error('\n!!! a sandbox folder is still mounted !!!')
     process.exit(1)
   }
   if (after !== before) {
-    console.error('\n!!! the real dconf database or extensions changed during the tests !!!')
+    console.error('\n!!! the real dconf database, extensions, themes or wallpapers changed during the tests !!!')
     process.exit(1)
   }
-  console.log('\nreal dconf database and extensions unchanged')
+  console.log('\nreal dconf database, extensions, themes and wallpapers unchanged')
   process.exit(code)
 }
 
 /***************************************
 MAKE SANDBOX
 temp XDG_CONFIG_HOME (dconf database), XDG_RUNTIME_DIR (dconf change notices),
-XDG_DATA_HOME (installed extensions) and XDG_CACHE_HOME (gnome-extensions install unpacks there).
+XDG_DATA_HOME (installed extensions, themes, wallpapers), XDG_CACHE_HOME (gnome-extensions install unpacks there)
+and HOME (~/.themes and ~/.icons).
 no gvfs, it would mount a fuse folder inside the sandbox that cannot be deleted
 ***************************************/
 function make_sandbox () {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gnome-hypersync-sandbox-'))
-  for (const name of ['config', 'data', 'cache']) fs.mkdirSync(path.join(dir, name))
+  for (const name of ['config', 'data', 'cache', 'home']) fs.mkdirSync(path.join(dir, name))
   fs.mkdirSync(path.join(dir, 'runtime'), { mode: 0o700 })
-  const folders = { XDG_CONFIG_HOME: path.join(dir, 'config'), XDG_RUNTIME_DIR: path.join(dir, 'runtime'), XDG_DATA_HOME: path.join(dir, 'data'), XDG_CACHE_HOME: path.join(dir, 'cache') }
+  const folders = { XDG_CONFIG_HOME: path.join(dir, 'config'), XDG_RUNTIME_DIR: path.join(dir, 'runtime'), XDG_DATA_HOME: path.join(dir, 'data'), XDG_CACHE_HOME: path.join(dir, 'cache'), HOME: path.join(dir, 'home') }
   const env = { ...process.env, ...folders, GIO_USE_VFS: 'local', GVFS_DISABLE_FUSE: '1', GNOME_HYPERSYNC_SANDBOX: dir, GNOME_HYPERSYNC_REAL_BUS: process.env.DBUS_SESSION_BUS_ADDRESS || '' }
   return { dir, env }
 }
@@ -67,11 +68,10 @@ function read_fingerprint (config_dir) {
   return [hash(dump), hash(file), mtime].join(' ')
 }
 
-// names and modified times of everything in the user extensions folder
-function read_extensions_fingerprint (data_dir) {
-  const dir = path.join(data_dir, 'gnome-shell', 'extensions')
-  if (!fs.existsSync(dir)) return ''
-  return ' ' + hash(fs.readdirSync(dir, { recursive: true }).sort().map(name => name + fs.statSync(path.join(dir, name)).mtimeMs).join())
+// names and modified times of everything in the user extensions, themes, icons and wallpapers folders
+function read_files_fingerprint (data_dir) {
+  const dirs = ['gnome-shell/extensions', 'themes', 'icons', 'backgrounds'].map(name => path.join(data_dir, name)).concat(['.themes', '.icons'].map(name => path.join(os.homedir(), name)))
+  return dirs.filter(dir => fs.existsSync(dir)).map(dir => ' ' + hash(fs.readdirSync(dir, { recursive: true }).sort().map(name => name + fs.lstatSync(path.join(dir, name)).mtimeMs).join())).join('')
 }
 
 /***************************************
@@ -80,7 +80,7 @@ tests that write to dconf call this first
 ***************************************/
 function require_sandbox () {
   const dir = process.env.GNOME_HYPERSYNC_SANDBOX
-  const ok = dir && process.env.XDG_CONFIG_HOME === path.join(dir, 'config') && process.env.XDG_DATA_HOME === path.join(dir, 'data') && process.env.DBUS_SESSION_BUS_ADDRESS !== process.env.GNOME_HYPERSYNC_REAL_BUS
+  const ok = dir && process.env.XDG_CONFIG_HOME === path.join(dir, 'config') && process.env.XDG_DATA_HOME === path.join(dir, 'data') && process.env.HOME === path.join(dir, 'home') && process.env.DBUS_SESSION_BUS_ADDRESS !== process.env.GNOME_HYPERSYNC_REAL_BUS
   if (!ok) throw new Error('not in a sandbox, run the tests with `npm test`')
   return dir
 }

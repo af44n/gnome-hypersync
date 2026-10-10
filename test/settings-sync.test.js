@@ -2,15 +2,9 @@ const test = require('node:test')
 const assert = require('node:assert')
 const fs = require('fs')
 const path = require('path')
-const { start_extra_session } = require('./sandbox.js')
-const { make_devices, until, temp_dir } = require('./helpers.js')
-const gnome_dconf = require('../lib/node_modules/gnome-dconf')
+const { until } = require('./helpers.js')
+const { make_sync_devices, install_by_hand } = require('./sync-helpers.js')
 const sync_rules = require('../lib/node_modules/sync-rules')
-const safety_backup = require('../lib/node_modules/safety-backup')
-const settings_sync = require('../lib/node_modules/settings-sync')
-const shell_extensions = require('../lib/node_modules/shell-extensions')
-const local_settings = require('../lib/node_modules/local-settings')
-const start_fake_ego = require('./fake-ego.js')
 
 const scheme = '/org/gnome/desktop/interface/color-scheme'
 const icons = '/org/gnome/desktop/interface/icon-theme'
@@ -161,38 +155,3 @@ test('uninstalling an extension on one device is not sent as a removal', async f
   assert.deepStrictEqual(await a.sync.push_local_changes(), [])
   assert.strictEqual((await a.store.get('/extensions/good@test')).value, "'enabled'")
 })
-
-/***************************************
-HELPERS
-***************************************/
-async function make_sync_devices (t) {
-  const stores = await make_devices(t, 2)
-  const ego = await start_fake_ego([{ uuid: 'good@test', shell: ['50'] }, { uuid: 'old@test', shell: ['3.38'] }])
-  t.after(ego.close)
-  const devices = []
-  for (const store of stores) devices.push(await make_sync_device({ t, store, ego }))
-  return devices
-}
-
-async function install_by_hand ({ device, uuid, shell }) {
-  const dir = path.join(device.data_dir, 'gnome-shell', 'extensions', uuid)
-  await fs.promises.mkdir(dir, { recursive: true })
-  await fs.promises.writeFile(path.join(dir, 'metadata.json'), JSON.stringify({ uuid, 'shell-version': shell }))
-  await device.dconf.write('/org/gnome/shell/enabled-extensions', `['${uuid}']`)
-}
-
-// every device gets its own dbus session, dconf database and extensions folder
-async function make_sync_device ({ t, store, ego }) {
-  const session = start_extra_session()
-  t.after(session.stop)
-  const dir = temp_dir()
-  const dconf = gnome_dconf({ env: session.env })
-  const rules = sync_rules({ file: path.join(dir, 'rules.json') })
-  const extensions = shell_extensions({ dconf, env: session.env, ego_url: ego.url, shell_version: 50 })
-  const local = local_settings({ dconf, extensions, rules })
-  const backup = safety_backup({ dir: path.join(dir, 'backups'), local })
-  const sync = settings_sync({ local, store, rules, backup, file: path.join(dir, 'synced.json') })
-  await rules.load()
-  await sync.load()
-  return { dconf, store, rules, backup, sync, extensions, data_dir: session.env.XDG_DATA_HOME }
-}
