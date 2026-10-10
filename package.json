@@ -26,7 +26,10 @@
         "error",
         "never"
       ]
-    }
+    },
+    "globals": [
+      "fetch"
+    ]
   },
   "dependencies": {
     "autobase": "^7.28.2",
