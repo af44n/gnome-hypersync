@@ -47,7 +47,7 @@ test('a reset is synced and also follows newest wins', async function (t) {
   await until(async () => (await a.get('/k'))?.value === null)
 })
 
-test('a removed device can no longer write, the last device cannot remove itself', async function (t) {
+test('a removed device can no longer write, a device cannot remove itself', async function (t) {
   const [a, b] = await make_devices(t, 2)
   await a.remove_device(b.writer_key)
   await until(() => !b.writable)
