@@ -1,0 +1,54 @@
+{
+  "name": "gnome-hypersync",
+  "version": "0.0.1",
+  "description": "keep your whole GNOME setup in sync between your own machines, peer to peer",
+  "license": "MIT",
+  "bin": {
+    "gnome-hypersync": "./lib/cli.js"
+  },
+  "scripts": {
+    "test": "node test/sandbox.js node --test --test-concurrency=1 'test/*.test.js'",
+    "lint": "standardx",
+    "lintfix": "standardx --fix"
+  },
+  "standardx": {
+    "noDefaultIgnore": true,
+    "ignore": [
+      "/node_modules/",
+      "!/lib/node_modules/*"
+    ],
+    "rules": {
+      "space-before-function-paren": [
+        "error",
+        "always"
+      ],
+      "func-call-spacing": [
+        "error",
+        "never"
+      ]
+    }
+  },
+  "dependencies": {
+    "autobase": "^7.28.2",
+    "b4a": "^1.9.0",
+    "blind-pairing": "^2.3.1",
+    "corestore": "^7.13.0",
+    "hyperbee": "^2.27.3",
+    "hypercore-crypto": "^3.7.0",
+    "hyperswarm": "^4.17.2",
+    "z32": "^1.1.0"
+  },
+  "devDependencies": {
+    "hyperdht": "^6.34.1",
+    "standardx": "^7.0.0"
+  },
+  "eslintConfig": {
+    "rules": {
+      "camelcase": "off",
+      "indent": [
+        "error",
+        2
+      ]
+    }
+  }
+}
