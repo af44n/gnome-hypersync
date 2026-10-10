@@ -10,8 +10,8 @@ no account no cloud no github token. you pair your machines once with an invite 
 - extension settings (`/org/gnome/shell/extensions/`)
 - keybindings and custom shortcuts
 - look and feel (`/org/gnome/desktop/interface/` so theme icons fonts color scheme etc)
-
-wallpaper is not there yet
+- wallpaper, light and dark, the image itself gets sent over and saved in `~/.local/share/backgrounds/gnome-hypersync`
+- the gtk shell icon and cursor themes you use if they live in your home folder (`~/.themes` `~/.icons` `~/.local/share/themes` `~/.local/share/icons`)
 
 ## what doesnt sync
 
@@ -23,7 +23,7 @@ stuff that only makes sense on one machine or is private never leaves it
 - hardware addresses like your paired bluetooth devices
 - anything you exclude yourself with `exclude`
 
-extensions are never uninstalled. an extension that doesnt support your gnome version is not installed, you just get told
+extensions and themes are never uninstalled or replaced. an extension that doesnt support your gnome version is not installed and a theme folder that already exists with different content is left alone, you just get told
 
 ## safety
 
@@ -84,9 +84,10 @@ plain javascript on node, no build step
 - [hyperswarm](https://github.com/holepunchto/hyperswarm) finds your other machines and connects to them
 - [autobase](https://github.com/holepunchto/autobase) lets every machine write and gives all of them the same view
 - [hyperbee](https://github.com/holepunchto/hyperbee) holds the settings as key value pairs inside that view
+- [hyperblobs](https://github.com/holepunchto/hyperblobs) carries files like the wallpaper and theme folders, every machine has its own encrypted blob core
 - [corestore](https://github.com/holepunchto/corestore) and [hypercore](https://github.com/holepunchto/hypercore) store everything as signed append only logs
 - [blind-pairing](https://github.com/holepunchto/blind-pairing) does the invite code pairing
-- `dconf` and `gnome-extensions` for talking to gnome
+- `dconf` `gnome-extensions` and `tar` for talking to gnome and packing themes
 
 ## tests
 
@@ -94,8 +95,8 @@ plain javascript on node, no build step
 npm test
 ```
 
-the tests never touch your real settings. they run in their own dbus session with a temporary dconf database and extensions folder, and the runner fails if your real dconf or extensions changed. there are tests with two devices syncing in one process, pairing on a local test dht and two real cli processes pairing and syncing
+the tests never touch your real settings. they run in their own dbus session with a temporary dconf database home and data folder, and the runner fails if your real dconf extensions themes or wallpapers changed. there are tests with two devices syncing in one process, pairing on a local test dht and two real cli processes pairing and syncing
 
 ## status
 
-early but working. dconf and extension sync work end to end and a first real run went fine, still needs proper testing on two physical machines. wallpaper is next
+completed. everything on the list syncs: extensions and their settings, keybindings, look and feel, wallpaper and themes. all of it is tested with two devices in the sandbox, settings and extensions also went through a real run over the real dht
