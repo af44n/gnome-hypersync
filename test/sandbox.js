@@ -19,7 +19,9 @@ function run_in_sandbox (command) {
   const real_data = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
   const before = read_fingerprint(real_config) + read_extensions_fingerprint(real_data)
   const sandbox = make_sandbox()
-  const child = spawn('dbus-run-session', ['--', ...command], { stdio: 'inherit', env: sandbox.env })
+  fs.mkdirSync(path.join(sandbox.dir, 'tmp'))
+  const env = { ...sandbox.env, TMPDIR: path.join(sandbox.dir, 'tmp') } // temp folders of the tests are deleted with the sandbox
+  const child = spawn('dbus-run-session', ['--', ...command], { stdio: 'inherit', env })
   child.on('exit', code => on_sandbox_exit({ code, real_config, real_data, before, sandbox }))
 }
 
